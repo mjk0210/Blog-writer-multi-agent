@@ -12,3 +12,14 @@ crew:
   verbose: true
 
 
+
+# "crewai" (default) or "openclaw". Override with BLOG_BACKEND.
+backend: crewai
+
+openclaw:
+  base_url: http://127.0.0.1:18789   # override with OPENCLAW_GATEWAY_URL
+  timeout_seconds: 600               # per stage
+  agents:
+    planner: blog-planner
+    writer: blog-writer
+    editor: blog-editor

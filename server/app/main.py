@@ -12,9 +12,11 @@ import yaml
 from crewai import Agent, Task, Crew, LLM
 from crewai_tools import SerperDevTool
 
+from .openclaw_backend import build_pipeline
+
 
 # Simple config loader (YAML + env overrides)
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "config", "config.yaml")
+DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "config", "config.yaml")
 
 
 def load_config(path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
@@ -26,19 +28,20 @@ def load_config(path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
         with open(path, "r", encoding="utf-8") as f:
             config = yaml.safe_load(f) or {}
 
-    # Required env validation
-    missing = []
-    if not os.getenv("GOOGLE_API_KEY"):
-        missing.append("GOOGLE_API_KEY")
-    if not os.getenv("SERPER_API_KEY"):
-        missing.append("SERPER_API_KEY")
-    if missing:
-        raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
-
-    # Defaults with overrides
     app_cfg = config.get("app", {})
     llm_cfg = config.get("llm", {})
     crew_cfg = config.get("crew", {})
+    openclaw_cfg = config.get("openclaw", {})
+
+    backend = os.getenv("BLOG_BACKEND", config.get("backend", "crewai"))
+    if backend not in ("crewai", "openclaw"):
+        raise RuntimeError(f"Unknown backend '{backend}'; expected 'crewai' or 'openclaw'")
+
+    # Required env validation
+    required = ["GOOGLE_API_KEY", "SERPER_API_KEY"] if backend == "crewai" else ["OPENCLAW_GATEWAY_TOKEN"]
+    missing = [name for name in required if not os.getenv(name)]
+    if missing:
+        raise RuntimeError(f"Missing environment variables: {', '.join(missing)}")
 
     return {
         "host": app_cfg.get("host", "127.0.0.1"),
@@ -46,6 +49,18 @@ def load_config(path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any]:
         "cors_origins": app_cfg.get("cors_origins", ["http://localhost:3000", "http://127.0.0.1:3000"]),
         "llm_model": llm_cfg.get("model", "gemini/gemini-2.0-flash-exp"),
         "crew_verbose": crew_cfg.get("verbose", True),
+        "backend": backend,
+        "openclaw": {
+            "base_url": os.getenv("OPENCLAW_GATEWAY_URL", openclaw_cfg.get("base_url", "http://127.0.0.1:18789")),
+            "token": os.getenv("OPENCLAW_GATEWAY_TOKEN", ""),
+            "agents": {
+                "planner": "blog-planner",
+                "writer": "blog-writer",
+                "editor": "blog-editor",
+                **openclaw_cfg.get("agents", {}),
+            },
+            "timeout_seconds": openclaw_cfg.get("timeout_seconds", 600),
+        },
     }
 
 
@@ -167,10 +182,20 @@ def build_crew() -> Crew:
     )
 
 
-# Store crew in app state at startup
+# Store crew (or OpenClaw pipeline) in app state at startup
 @app.on_event("startup")
 def startup() -> None:
-    app.state.crew = build_crew()
+    if settings["backend"] == "openclaw":
+        app.state.pipeline = build_pipeline(settings["openclaw"])
+    else:
+        app.state.crew = build_crew()
+
+
+@app.on_event("shutdown")
+async def shutdown() -> None:
+    pipeline = getattr(app.state, "pipeline", None)
+    if pipeline is not None:
+        await pipeline.aclose()
 
 
 @app.post("/generate-blog/")
@@ -178,10 +203,12 @@ async def generate_blog(request: TopicRequest) -> Dict[str, Any]:
     if not request.topic or not request.topic.strip():
         raise HTTPException(status_code=400, detail="'topic' must be provided")
 
-    crew = app.state.crew
     try:
-        result = crew.kickoff(inputs={"topic": request.topic.strip()})
-        blog_text = getattr(result, "raw", None) or str(result)
+        if settings["backend"] == "openclaw":
+            blog_text = await app.state.pipeline.generate(request.topic.strip())
+        else:
+            result = app.state.crew.kickoff(inputs={"topic": request.topic.strip()})
+            blog_text = getattr(result, "raw", None) or str(result)
         return {"topic": request.topic, "blog": {"raw": blog_text}}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc

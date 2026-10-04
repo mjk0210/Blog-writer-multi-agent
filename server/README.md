@@ -38,3 +38,6 @@ uv run uvicorn app.main:app --host 127.0.0.1 --port 8002 --reload
 ## Notes
 - The server initializes the Crew (Planner, Writer, Editor) at startup for lower latency.
 - Image generation (DALL·E) is not included at the moment, mirroring only the utilized parts of the notebook.
+
+## OpenClaw backend
+Set `BLOG_BACKEND=openclaw` (or `backend: openclaw` in `config/config.yaml`) to run the same Planner → Writer → Editor pipeline on an OpenClaw gateway. This needs `OPENCLAW_GATEWAY_TOKEN` and, optionally, `OPENCLAW_GATEWAY_URL` (default `http://127.0.0.1:18789`). In this mode, `GOOGLE_API_KEY` and `SERPER_API_KEY` are not needed. See `../openclaw/README.md`.

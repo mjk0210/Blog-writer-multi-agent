@@ -4,3 +4,8 @@ crewai+scrapgraph.ipynb
 # client/
 api/
 .codegpt
+__pycache__/
+# OpenClaw runtime output written into the linked workspaces
+openclaw/workspaces/*/posts/
+openclaw/workspaces/*/memory/
+openclaw/workspaces/*/MEMORY.md
