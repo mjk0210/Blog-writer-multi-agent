@@ -1,0 +1,13 @@
+// Optional: enable the gateway's OpenAI-compatible endpoint used by the
+// FastAPI server (server/, BLOG_BACKEND=openclaw). Merge with:
+//   openclaw config patch --file openclaw/gateway-http.json5
+// The endpoint gives full operator access: keep the gateway on loopback.
+{
+  gateway: {
+    http: {
+      endpoints: {
+        chatCompletions: { enabled: true },
+      },
+    },
+  },
+}

@@ -1,91 +1,110 @@
-// OpenClaw config for the BlogGPT multi-agent pipeline.
-// Copy (or merge) into ~/.openclaw/openclaw.json. See openclaw/README.md.
+// BlogGPT + task-routed agents for OpenClaw 2026.9 and later (agents.entries format).
 //
-// Maps the CrewAI crew in server/app/main.py onto OpenClaw agents:
-//   Content Planner -> blog-planner   (web_search via Gemini grounding, replaces Serper)
-//   Content Writer  -> blog-writer    (no tools)
-//   Editor          -> blog-editor    (no tools)
-//   Banner Designer -> blog-designer  (image_generate; was DALL-E in crew.ipynb)
-//   Crew (sequential process) -> blog-coordinator, which runs the steps via sessions_spawn.
+// This file is a patch: scripts/install.sh merges it into ~/.openclaw/openclaw.json
+// with `openclaw config patch`, so your existing agents, channels and gateway
+// settings are kept. Objects merge; arrays (allowAgents, alsoAllow) are replaced.
+//
+// Models go through OpenRouter (OPENROUTER_API_KEY in ~/.openclaw/.env).
+// install.sh can swap the model names via environment variables; see README.md.
+//
+// Agents:
+//   main             everyday chat (MiniMax); hands work to the agents below
+//   coder            programming (DeepSeek)
+//   thinker          complex analysis and planning (Claude Opus)
+//   writer           general writing (Claude Sonnet)
+//   blog-coordinator runs the blog pipeline via sessions_spawn (MiniMax)
+//   blog-planner     research + outline, web_search (Gemini Flash)
+//   blog-writer      drafts the post (Claude Sonnet)
+//   blog-editor      edits the post (Claude Sonnet)
+//   blog-designer    optional banner image (Gemini Flash)
+//
+// Tool policy note (2026.9+): `tools.allow` narrows a profile and `tools.alsoAllow`
+// adds to it. Every agent here starts from the `minimal` or `coding` profile and
+// uses alsoAllow for extra tools; `allow: null` removes any older allow list.
 {
-  gateway: {
-    port: 18789,
-    bind: "loopback",
-    // Token comes from OPENCLAW_GATEWAY_TOKEN in ~/.openclaw/.env.
-    auth: { mode: "token" },
-    http: {
-      endpoints: {
-        // Used by server/app (BLOG_BACKEND=openclaw) to call each agent directly.
-        chatCompletions: { enabled: true },
-      },
-    },
-  },
-
-  tools: {
-    web: { search: { provider: "gemini" } }, // reuses GEMINI_API_KEY
-  },
-
   agents: {
     defaults: {
-      model: { primary: "google/gemini-3.1-pro-preview" },
-      imageGenerationModel: { primary: "google/gemini-3.1-flash-image-preview" },
-      skipBootstrap: true, // workspaces are managed in this repo
+      model: { primary: "openrouter/minimax/minimax-m3" },
+      mediaModels: {
+        image: { primary: "openrouter/google/gemini-3.1-flash-image-preview", timeoutMs: 180000 },
+      },
+      // Aliases for `/model <alias>` in chat. Once set, this list is also the
+      // allowlist for /model and session overrides.
+      models: {
+        "openrouter/minimax/minimax-m3": { alias: "General" },
+        "openrouter/google/gemini-3-flash-preview": { alias: "Flash" },
+        "openrouter/deepseek/deepseek-v4-pro": { alias: "Coder" },
+        "openrouter/anthropic/claude-opus-4-8": { alias: "Opus" },
+        "openrouter/anthropic/claude-sonnet-4-6": { alias: "Sonnet" },
+      },
       subagents: {
-        maxSpawnDepth: 1, // coordinator -> specialists only; specialists never spawn
+        maxSpawnDepth: 2, // main -> blog-coordinator -> blog specialists
         maxConcurrent: 4,
         runTimeoutSeconds: 600,
-        archiveAfterMinutes: 60,
       },
     },
-    list: [
-      {
-        id: "blog-coordinator",
-        default: true,
+    entries: {
+      main: {
+        // A heartbeat block on main means only main runs heartbeats.
+        heartbeat: { model: "openrouter/google/gemini-3-flash-preview" },
+        subagents: { allowAgents: ["main", "coder", "thinker", "writer", "blog-coordinator"] },
+      },
+
+      coder: {
+        workspace: "~/.openclaw/workspace-coder",
+        model: { primary: "openrouter/deepseek/deepseek-v4-pro" },
+        tools: { profile: "coding", allow: null },
+      },
+      thinker: {
+        workspace: "~/.openclaw/workspace-thinker",
+        model: { primary: "openrouter/anthropic/claude-opus-4-8" },
+        tools: { profile: "coding", allow: null },
+      },
+      writer: {
+        workspace: "~/.openclaw/workspace-writer",
+        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        tools: { profile: "minimal", allow: null, alsoAllow: ["read", "write", "edit", "web_search", "web_fetch"] },
+      },
+
+      "blog-coordinator": {
         workspace: "~/.openclaw/workspace-blog-coordinator",
+        model: { primary: "openrouter/minimax/minimax-m3" },
         tools: {
           profile: "minimal",
-          allow: ["sessions_spawn", "sessions_yield", "subagents", "agents_list", "read", "write"],
+          allow: null,
+          alsoAllow: ["sessions_spawn", "sessions_yield", "subagents", "agents_list", "read", "write"],
           deny: ["exec", "process", "browser", "web_search", "web_fetch"],
         },
         subagents: {
           allowAgents: ["blog-planner", "blog-writer", "blog-editor", "blog-designer"],
           requireAgentId: true,
-          delegationMode: "prefer",
         },
         skills: ["blog-pipeline"],
       },
-      {
-        id: "blog-planner",
+      "blog-planner": {
         workspace: "~/.openclaw/workspace-blog-planner",
-        model: { primary: "google/gemini-3-flash-preview" },
-        tools: { profile: "minimal", allow: ["web_search", "web_fetch"] },
+        model: { primary: "openrouter/google/gemini-3-flash-preview" },
+        tools: { profile: "minimal", allow: null, alsoAllow: ["web_search", "web_fetch"] },
         skills: [],
       },
-      {
-        id: "blog-writer",
+      "blog-writer": {
         workspace: "~/.openclaw/workspace-blog-writer",
-        tools: { profile: "minimal" },
+        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        tools: { profile: "minimal", allow: null },
         skills: [],
       },
-      {
-        id: "blog-editor",
+      "blog-editor": {
         workspace: "~/.openclaw/workspace-blog-editor",
-        tools: { profile: "minimal" },
+        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        tools: { profile: "minimal", allow: null },
         skills: [],
       },
-      {
-        id: "blog-designer",
+      "blog-designer": {
         workspace: "~/.openclaw/workspace-blog-designer",
-        model: { primary: "google/gemini-3-flash-preview" },
-        tools: { profile: "minimal", allow: ["image_generate"] },
+        model: { primary: "openrouter/google/gemini-3-flash-preview" },
+        tools: { profile: "minimal", allow: null, alsoAllow: ["image_generate"] },
         skills: [],
       },
-    ],
+    },
   },
-
-  // Optional: chat with the coordinator from Telegram. Uncomment and set
-  // TELEGRAM_BOT_TOKEN, or use any other channel (Slack, Discord, WhatsApp...).
-  // bindings: [
-  //   { agentId: "blog-coordinator", match: { channel: "telegram" } },
-  // ],
 }
