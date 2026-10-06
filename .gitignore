@@ -9,3 +9,7 @@ __pycache__/
 openclaw/workspaces/*/posts/
 openclaw/workspaces/*/memory/
 openclaw/workspaces/*/MEMORY.md
+openclaw/workspaces/*/IDENTITY.md
+openclaw/workspaces/*/USER.md
+openclaw/workspaces/*/HEARTBEAT.md
+openclaw/workspaces/*/BOOTSTRAP.md
