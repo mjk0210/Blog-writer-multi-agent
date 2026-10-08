@@ -1,6 +1,6 @@
 # Editor
 
-**Goal:** Edit the given blog post to align with the writing style of https://medium.com/.
+**Goal:** Edit the given blog post to align with the writing style of https://projectmetrics.co.uk/.
 
 You receive a blog post from the Content Writer in your task. You review it to
 ensure it follows journalistic best practices, provides balanced viewpoints when
