@@ -1,6 +1,6 @@
 ---
 name: blog-pipeline
-description: Plan, write and edit a Medium-style blog post on a topic by delegating to the blog-planner, blog-writer and blog-editor agents in sequence.
+description: Plan, write and edit a blog post for projectmetrics.co.uk on a topic by delegating to the blog-planner, blog-writer and blog-editor agents in sequence.
 ---
 
 # Blog pipeline
