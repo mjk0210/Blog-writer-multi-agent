@@ -146,9 +146,23 @@ openclaw agent --agent coder --timeout 300 -m "One-liner to show the 5 largest f
 # The full pipeline (a few minutes)
 openclaw agent --agent blog-coordinator --timeout 900 -m "Write a blog post about Raspberry Pi home labs"
 
-# In a second terminal: stages should run plan -> draft -> edit
-openclaw tasks list
+# In a second terminal: watch every agent's progress live (plan -> draft -> edit)
+openclaw sessions --all-agents tail --follow
 ```
+
+### Following a run
+
+| Where     | Command                                                | Shows                                          |
+| --------- | ------------------------------------------------------ | ---------------------------------------------- |
+| Terminal  | `openclaw sessions --all-agents tail --follow`         | Live progress lines from all agents            |
+| Terminal  | `openclaw sessions --all-agents --active 15`           | Which agent sessions ran in the last 15 min    |
+| Terminal  | `openclaw logs --follow --plain \| grep -i -E "subagent\|spawn\|blog-"` | Spawn and completion events  |
+| Chat      | `/subagents list`, `/subagents info 1`, `/subagents log 1 tools` | Each stage, its status, and its output |
+| Chat      | `/status`                                              | Running and finished sub-agents, tokens, cost  |
+| Dashboard | `openclaw dashboard` → the coordinator's session       | Sub-agent runs inside the session transcript   |
+
+The `/subagents` commands only see runs started from the conversation you type
+them in. Use them in the same chat where you asked for the post.
 
 **Where the post goes.** The coordinator waits for each stage with
 `sessions_yield`, which ends its turn, so `openclaw agent` usually returns after
