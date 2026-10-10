@@ -34,8 +34,8 @@
         "openrouter/minimax/minimax-m3": { alias: "General" },
         "openrouter/google/gemini-3-flash-preview": { alias: "Flash" },
         "openrouter/deepseek/deepseek-v4-pro": { alias: "Coder" },
-        "openrouter/anthropic/claude-opus-4-8": { alias: "Opus" },
-        "openrouter/anthropic/claude-sonnet-4-6": { alias: "Sonnet" },
+        "openrouter/anthropic/claude-opus-5-5": { alias: "Opus" },
+        "openrouter/anthropic/claude-sonnet-5-5": { alias: "Sonnet" },
       },
       subagents: {
         maxSpawnDepth: 2, // main -> blog-coordinator -> blog specialists
@@ -57,12 +57,12 @@
       },
       thinker: {
         workspace: "~/.openclaw/workspace-thinker",
-        model: { primary: "openrouter/anthropic/claude-opus-4-8" },
+        model: { primary: "openrouter/anthropic/claude-opus-5-5" },
         tools: { profile: "coding", allow: null },
       },
       writer: {
         workspace: "~/.openclaw/workspace-writer",
-        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        model: { primary: "openrouter/anthropic/claude-sonnet-5-5" },
         tools: { profile: "minimal", allow: null, alsoAllow: ["read", "write", "edit", "web_search", "web_fetch"] },
       },
 
@@ -89,13 +89,13 @@
       },
       "blog-writer": {
         workspace: "~/.openclaw/workspace-blog-writer",
-        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        model: { primary: "openrouter/anthropic/claude-sonnet-5-5" },
         tools: { profile: "minimal", allow: null },
         skills: [],
       },
       "blog-editor": {
         workspace: "~/.openclaw/workspace-blog-editor",
-        model: { primary: "openrouter/anthropic/claude-sonnet-4-6" },
+        model: { primary: "openrouter/anthropic/claude-sonnet-5-5" },
         tools: { profile: "minimal", allow: null },
         skills: [],
       },

@@ -8,7 +8,7 @@ and tool permissions.
 
 **Requires OpenClaw 2026.9 or later.** That release changed the config format
 (`agents.entries` instead of `agents.list`, `tools.alsoAllow` to add tools to a
-profile, `mediaModels.image` for image generation). Tested on 2026.9.8.
+profile, `mediaModels.image` for image generation). Tested on 2026.9.8 and 2026.9.9.
 
 ## Agents and models
 
@@ -19,12 +19,12 @@ All models go through [OpenRouter](https://openrouter.ai) with one API key.
 | `main`             | Everyday chat; hands work to the others    | MiniMax (`General`)       | your existing setup            |
 | (heartbeat)        | Periodic checks, `main` only               | Gemini Flash (`Flash`)    |                                |
 | `coder`            | Programming, scripts, config               | DeepSeek (`Coder`)        | `coding` profile               |
-| `thinker`          | Complex analysis, planning, decisions      | Claude Opus (`Opus`)      | `coding` profile               |
-| `writer`           | Emails, posts, rewrites                    | Claude Sonnet (`Sonnet`)  | files + web                    |
+| `thinker`          | Complex analysis, planning, decisions      | Claude Opus 5.5 (`Opus`)  | `coding` profile               |
+| `writer`           | Emails, posts, rewrites                    | Claude Sonnet 5.5 (`Sonnet`) | files + web                    |
 | `blog-coordinator` | Runs the blog pipeline                     | MiniMax                   | spawn/yield sub-agents, files  |
 | `blog-planner`     | Research and outline                       | Gemini Flash              | `web_search`, `web_fetch`      |
-| `blog-writer`      | Drafts the post                            | Claude Sonnet             | none                           |
-| `blog-editor`      | Edits the post                             | Claude Sonnet             | none                           |
+| `blog-writer`      | Drafts the post                            | Claude Sonnet 5.5         | none                           |
+| `blog-editor`      | Edits the post                             | Claude Sonnet 5.5         | none                           |
 | `blog-designer`    | Optional banner image                      | Gemini Flash              | `image_generate`               |
 
 The names in brackets are aliases: `/model Opus` in chat switches the current
@@ -179,6 +179,46 @@ From chat the result comes back to the same conversation: ask your main agent
 *"Ask blog-coordinator to write a post about X"*, and use `/subagents list` to
 watch the stages.
 
+## Telegram
+
+**Through your main bot.** Ask your everyday bot: *"Ask blog-coordinator to
+write a post about X"*. `main` hands the job over and the post comes back in
+the same chat.
+
+**A dedicated blog bot (recommended).** Everything sent to this bot goes
+straight to `blog-coordinator`, so you only type a topic.
+
+1. In Telegram, message **@BotFather**, send `/newbot`, and copy the token.
+2. Make sure your existing bot is routed to `main` (`openclaw agents bindings`
+   should list `main <- telegram accountId=default`):
+
+   ```bash
+   openclaw agents bind --agent main --bind telegram:default
+   ```
+
+3. Add the blog bot and route it to the coordinator:
+
+   ```bash
+   openclaw channels add --channel telegram --account blog --token 'BLOG-BOT-TOKEN'
+   openclaw config set channels.telegram.defaultAccount default
+   openclaw agents bind --agent blog-coordinator --bind telegram:blog
+   systemctl --user restart openclaw-gateway.service
+   openclaw channels status --probe
+   ```
+
+4. Message the blog bot once; it replies with a pairing code. Approve it:
+
+   ```bash
+   openclaw pairing approve telegram <CODE> --account blog --notify
+   ```
+
+5. Send it a topic, for example *"project metrics for small teams"*. Use
+   `/subagents list` in that chat to watch the stages and `/new` to start a
+   fresh conversation.
+
+Undo with `openclaw agents unbind --agent blog-coordinator --bind telegram:blog`
+and `openclaw channels remove --channel telegram --account blog`.
+
 ## Raspberry Pi notes
 
 - Startup on a Pi 4 can take over a minute, longer than `openclaw gateway
@@ -207,6 +247,7 @@ watch the stages.
 | `No callable tools remain after resolving explicit tool allowlist` | An agent uses `tools.allow` with a limited profile. On 2026.9+ use `alsoAllow`; `install.sh` sets `allow: null` to remove old lists. |
 | `Unknown config path: agents.list` | 2026.9+ stores agents in `agents.entries`; use the files in this folder, not older instructions. |
 | `Unrecognized key: "imageGenerationModel"` | Renamed to `agents.defaults.mediaModels.image` in 2026.9. |
+| `skill-collection-review-<agent>` fails with `No callable tools remain ... (runtime toolsAllow: ls, read, write, edit, ...)` | The weekly Skill Workshop review needs file tools, which the `minimal`-profile blog agents don't have. The blog agents have no skills to review, so turn the automatic review off with `openclaw config set skills.workshop.autonomous.mode propose` (skill ideas then wait for your approval), or `off`. |
 | `multi-agent rosters require agents.ownership...` | Run `openclaw doctor --fix`, then re-run `install.sh`. |
 | `Failed to fetch OpenRouter models` | The Pi can't reach openrouter.ai, or it timed out during a slow start. Test with `curl -s -o /dev/null -w "%{http_code}\n" https://openrouter.ai/api/v1/models`. |
 | Coordinator writes the post itself | Check `blog-pipeline` is "ready"; try a stronger coordinator model. |

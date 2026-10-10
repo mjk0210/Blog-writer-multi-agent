@@ -60,8 +60,8 @@ sed \
   -e "s#openrouter/minimax/minimax-m3#${GENERAL_MODEL:-openrouter/minimax/minimax-m3}#g" \
   -e "s#openrouter/google/gemini-3-flash-preview#${FLASH_MODEL:-openrouter/google/gemini-3-flash-preview}#g" \
   -e "s#openrouter/deepseek/deepseek-v4-pro#${CODING_MODEL:-openrouter/deepseek/deepseek-v4-pro}#g" \
-  -e "s#openrouter/anthropic/claude-opus-4-8#${COMPLEX_MODEL:-openrouter/anthropic/claude-opus-4-8}#g" \
-  -e "s#openrouter/anthropic/claude-sonnet-4-6#${WRITING_MODEL:-openrouter/anthropic/claude-sonnet-4-6}#g" \
+  -e "s#openrouter/anthropic/claude-opus-5-5#${COMPLEX_MODEL:-openrouter/anthropic/claude-opus-5-5}#g" \
+  -e "s#openrouter/anthropic/claude-sonnet-5-5#${WRITING_MODEL:-openrouter/anthropic/claude-sonnet-5-5}#g" \
   "$OC_DIR/openclaw.json5" > "$patch_file"
 
 openclaw config patch --file "$patch_file" --dry-run
