@@ -258,6 +258,13 @@ agent runs it or sees the WordPress credentials.
    ```
 
    `--check` should print your WordPress name, role and `can create posts: True`.
+   If it says *You are not currently logged in*, your host is stripping the
+   login from `/wp-json/` requests. The script detects this and switches to
+   the `?rest_route=` form automatically; add `WP_ROUTE_STYLE=rest_route` to
+   `wp.env` to use it from the start. If both forms fail, add these lines to the
+   site's `.htaccess` above `# BEGIN WordPress` (Apache):
+   `RewriteEngine On` and
+   `RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]`.
 3. **Turn on automatic uploads:**
 
    ```bash

@@ -25,6 +25,7 @@ Settings (environment, usually from ~/.config/projectmetrics/wp.env):
                       draft under a "delete before publishing" heading (default 0)
   WP_NOTIFY_TARGET    optional Telegram chat ID to notify with the draft link
   WP_NOTIFY_ACCOUNT   optional OpenClaw Telegram account id for the notice (e.g. blog)
+  WP_ROUTE_STYLE      auto (default), rest_route or wp-json; see the note above api()
   POSTS_DIR           default: ~/blog-writer/openclaw/workspaces/blog-coordinator/posts
   STATE_DIR           default: ~/.local/state/projectmetrics-wp
 """
@@ -73,8 +74,44 @@ def split_post(text: str) -> tuple[str, str, str]:
     return title, body, notes.strip()
 
 
+# Some Apache hosts strip the Authorization header from /wp-json/ requests but
+# keep it for the ?rest_route= form. "auto" tries /wp-json/ and switches when
+# WordPress says the request arrived without a login; "rest_route" always uses
+# the query form; "wp-json" never switches.
+_route_style = {"value": None}
+
+
+def _url(path: str, style: str) -> str:
+    base = env("WP_URL", required=True).rstrip("/")
+    if style == "rest_route":
+        route, _, query = path.partition("?")
+        return f"{base}/?rest_route=/wp/v2{route}" + (f"&{query}" if query else "")
+    return f"{base}/wp-json/wp/v2{path}"
+
+
 def api(method: str, path: str, payload: dict | None = None) -> dict:
-    url = env("WP_URL", required=True).rstrip("/") + "/wp-json/wp/v2" + path
+    if _route_style["value"] is None:
+        configured = env("WP_ROUTE_STYLE", "auto")
+        _route_style["value"] = "rest_route" if configured == "rest_route" else "wp-json"
+    try:
+        return _request(method, _url(path, _route_style["value"]), payload)
+    except _NotLoggedIn:
+        if _route_style["value"] == "wp-json" and env("WP_ROUTE_STYLE", "auto") == "auto":
+            _route_style["value"] = "rest_route"
+            try:
+                return _request(method, _url(path, "rest_route"), payload)
+            except _NotLoggedIn as err:
+                raise RuntimeError(str(err)) from None
+        raise RuntimeError(
+            "WordPress returned HTTP 401: You are not currently logged in."
+        ) from None
+
+
+class _NotLoggedIn(Exception):
+    pass
+
+
+def _request(method: str, url: str, payload: dict | None) -> dict:
     token = base64.b64encode(
         f"{env('WP_USER', required=True)}:{env('WP_APP_PASSWORD', required=True)}".encode()
     ).decode()
@@ -89,12 +126,17 @@ def api(method: str, path: str, payload: dict | None = None) -> dict:
         with urllib.request.urlopen(request, timeout=60) as response:
             return json.loads(response.read().decode() or "{}")
     except urllib.error.HTTPError as err:
-        detail = err.read().decode(errors="replace")
+        raw = err.read().decode(errors="replace")
         try:
-            detail = json.loads(detail).get("message", detail)
+            body = json.loads(raw)
         except ValueError:
-            pass
-        raise RuntimeError(f"WordPress returned HTTP {err.code}: {detail}") from None
+            body = {}
+        if err.code == 401 and body.get("code") == "rest_not_logged_in":
+            raise _NotLoggedIn(
+                "WordPress returned HTTP 401: You are not currently logged in. "
+                "The host may be stripping the Authorization header."
+            ) from None
+        raise RuntimeError(f"WordPress returned HTTP {err.code}: {body.get('message', raw)}") from None
     except urllib.error.URLError as err:
         raise RuntimeError(f"could not reach {url}: {err.reason}") from None
 
