@@ -239,10 +239,12 @@ review. Nothing is published. A small script, `scripts/wp-draft.py`, run by a
 systemd path unit, uploads each new file in `blog-coordinator/posts/`. No AI
 agent runs it or sees the WordPress credentials.
 
-1. **WordPress:** log in as the user that should own drafts (Editor role is
-   enough), go to **Users → Profile → Application Passwords**, add one named
-   `openclaw-pi`, and copy the password it shows. Application Passwords need a
-   self-hosted WordPress (5.6+) served over HTTPS.
+1. **WordPress:** as an administrator, add a user named `Mike_bot` with the
+   **Editor** role (Users → Add New User). Log in as `Mike_bot`, go to
+   **Users → Profile → Application Passwords**, add one named `Mike_bot`, and
+   copy the password it shows. Drafts will appear with `Mike_bot` as the
+   author. Application Passwords need a self-hosted WordPress (5.6+) served
+   over HTTPS.
 2. **Pi:** install the Markdown converter and store the settings:
 
    ```bash
