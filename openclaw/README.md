@@ -102,6 +102,7 @@ There are two ways into the blog pipeline, and both use the same specialist agen
 | `gateway-http.json5`     | Optional patch enabling `/v1/chat/completions` for FastAPI    |
 | `.env.example`           | Keys to put in `~/.openclaw/.env`                             |
 | `scripts/wp-draft.py`, `systemd/`, `wp.env.example` | WordPress draft uploads |
+| `scripts/blog-cost.py`, `systemd/`, `cost.env.example` | Per-post cost ledger and Telegram summary |
 
 ## Setup
 
@@ -285,6 +286,79 @@ post by hand with `wp-draft.py <file>`; re-upload with `--force`. Existing
 posts are uploaded the first time the watcher runs; to skip them, run
 `wp-draft.py --pending` once before enabling the path unit, or move them out
 of `posts/`.
+
+## Post costs
+
+After each post, `scripts/blog-cost.py` records what it cost in a ledger and
+sends a Telegram summary, for example:
+
+```
+Post cost: Why Data Quality Fails at Go-Live
+Cost: $0.41 (≈£0.32) (OpenRouter, actual)
+OpenClaw estimate: $0.66 (≈£0.52)
+Tokens: 89,100 total (66,000 in / 16,500 out / 6,600 cache)
+This month: 1 post, $0.41 (≈£0.32)
+Draft: https://projectmetrics.co.uk/wp-admin/post.php?post=9&action=edit
+```
+
+**Actual cost** comes from OpenRouter: the blog agents use their own
+OpenRouter key, and a post's cost is that key's spend now minus its spend
+after the previous post. This is the amount you're billed, including any plan
+revisions and the banner image. **Tokens** and the **estimate** come from
+`openclaw gateway usage-cost` for the five `blog-*` agents. Without a dedicated
+key, only the estimate is reported.
+
+1. **Create a dedicated key** at openrouter.ai/keys (e.g. named `blog-agents`,
+   with a monthly credit limit), then give it to the blog agents only. Save it
+   under its own name, `openrouter:blog`. On 2026.9 the default name
+   (`openrouter:manual`) is shared by every agent, so reusing it would replace
+   your main key.
+
+   ```bash
+   read -rs -p "Blog OpenRouter key: " BLOGKEY; echo
+   for a in blog-coordinator blog-planner blog-writer blog-editor blog-designer; do
+     printf '%s\n' "$BLOGKEY" | openclaw models auth paste-api-key \
+       --provider openrouter --profile-id openrouter:blog --agent "$a"
+     openclaw models auth order set --agent "$a" --provider openrouter openrouter:blog
+   done
+   unset BLOGKEY
+   systemctl --user restart openclaw-gateway.service
+   openclaw models auth order get --agent blog-writer --provider openrouter   # openrouter:blog
+   openclaw models auth order get --agent main --provider openrouter          # no override
+   ```
+
+   Your other agents keep using your main key, so their use isn't counted.
+   To undo: `openclaw models auth order clear --agent <id> --provider openrouter`.
+2. **Find your Telegram chat ID** with the blog bot: the number at the end of
+   `agent:blog-coordinator:telegram:direct:<number>` in
+   `openclaw sessions --agent blog-coordinator`. Let OpenClaw send messages
+   from scripts: `openclaw config set agents.defaults.systemAgent.agentId main`.
+3. **Store the settings** and take a starting reading:
+
+   ```bash
+   cp ~/blog-writer/openclaw/cost.env.example ~/.config/projectmetrics/cost.env
+   chmod 600 ~/.config/projectmetrics/cost.env
+   nano ~/.config/projectmetrics/cost.env   # OPENROUTER_BLOG_KEY, COST_NOTIFY_TARGET
+   set -a; . ~/.config/projectmetrics/cost.env; set +a
+   ~/blog-writer/openclaw/scripts/blog-cost.py --baseline
+   ```
+
+   The baseline marks existing posts as already counted.
+4. **Turn it on:**
+
+   ```bash
+   cp ~/blog-writer/openclaw/systemd/projectmetrics-post-cost.* ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now projectmetrics-post-cost.path
+   ```
+
+Monthly totals: `blog-cost.py --report`. The full ledger is
+`~/.local/state/projectmetrics-cost/ledger.csv` (opens in any spreadsheet).
+The script waits 90 seconds after a post appears so the final calls are
+counted. Spend on the blog key outside a post run (an abandoned run, for
+example) is counted in the next post; run `--baseline` to reset the starting
+point instead. If you also get WordPress draft links from `wp-draft.py`, you
+can leave `WP_NOTIFY_TARGET` unset, because the cost message includes the link.
 
 ## Raspberry Pi notes
 

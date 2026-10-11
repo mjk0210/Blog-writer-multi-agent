@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch blog posts and record what each one cost
+
+[Path]
+PathChanged=%h/blog-writer/openclaw/workspaces/blog-coordinator/posts
+Unit=projectmetrics-post-cost.service
+
+[Install]
+WantedBy=default.target

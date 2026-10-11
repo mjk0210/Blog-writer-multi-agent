@@ -1,0 +1,10 @@
+[Unit]
+Description=Record blog post cost and send it to Telegram
+# Run after the WordPress upload so the message can include the draft link.
+After=projectmetrics-wp-draft.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/projectmetrics/cost.env
+Environment=PATH=%h/.npm-global/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/python3 %h/blog-writer/openclaw/scripts/blog-cost.py --pending

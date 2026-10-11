@@ -4,6 +4,7 @@ Description=Upload new blog posts to WordPress as drafts
 [Service]
 Type=oneshot
 EnvironmentFile=%h/.config/projectmetrics/wp.env
+Environment=PATH=%h/.npm-global/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 # Give the coordinator a moment to finish writing the file.
 ExecStartPre=/bin/sleep 5
 ExecStart=/usr/bin/python3 %h/blog-writer/openclaw/scripts/wp-draft.py --pending

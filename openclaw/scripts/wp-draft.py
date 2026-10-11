@@ -153,7 +153,7 @@ def notify(message: str) -> None:
         return
     cmd = ["openclaw", "message", "send", "--channel", "telegram", "--target", target, "-m", message]
     if env("WP_NOTIFY_ACCOUNT"):
-        cmd[4:4] = ["--account", env("WP_NOTIFY_ACCOUNT")]
+        cmd += ["--account", env("WP_NOTIFY_ACCOUNT")]
     try:
         subprocess.run(cmd, check=False, timeout=60, capture_output=True)
     except (OSError, subprocess.TimeoutExpired):
