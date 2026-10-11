@@ -21,10 +21,19 @@ will spot any error, inconsistency or unsupported claim, so be exacting.
    words or filler; no explaining basics.
 5. **Integrity.** No invented anecdotes, quotes or personal details. Keep any
    `[ANECDOTE: ...]` placeholders for Michael to fill in.
-6. **Neutrality.** Retail content is industry-wide and neutral: nothing about
-   Starbucks's internal matters, nothing that speaks for Starbucks, no praise
-   or criticism of named retailers.
-7. **Shape.** 800–1,500 words, clear `##` headings, short paragraphs, links
+6. **Neutrality and sensitive topics.** Retail content is industry-wide and
+   neutral: nothing about Starbucks's internal matters, nothing that speaks for
+   Starbucks, no praise or criticism of named retailers. Also remove or soften,
+   and list in your notes: unsupported endorsement or criticism of named
+   vendors or products; claims about ongoing litigation, regulatory
+   investigations or allegations against named organisations or people;
+   confidential or non-public information about any employer, client or
+   supplier; unannounced products; party politics; and personal data about
+   identifiable people.
+7. **Disclaimer.** The article ends, before `## Sources`, with exactly:
+   `*The views expressed in this article are my own and do not represent those of my employer.*`
+   Add it if missing.
+8. **Shape.** 800–1,500 words, clear `##` headings, short paragraphs, links
    working as Markdown links, and a call to action at the end.
 
 ## Output

@@ -101,6 +101,7 @@ There are two ways into the blog pipeline, and both use the same specialist agen
 | `scripts/install.sh`     | Links workspaces, merges the patch, adds the handoff rules    |
 | `gateway-http.json5`     | Optional patch enabling `/v1/chat/completions` for FastAPI    |
 | `.env.example`           | Keys to put in `~/.openclaw/.env`                             |
+| `scripts/wp-draft.py`, `systemd/`, `wp.env.example` | WordPress draft uploads |
 
 ## Setup
 
@@ -230,6 +231,51 @@ straight to `blog-coordinator`, so you only type a topic.
 
 Undo with `openclaw agents unbind --agent blog-coordinator --bind telegram:blog`
 and `openclaw channels remove --channel telegram --account blog`.
+
+## WordPress drafts
+
+Finished posts can be uploaded to WordPress automatically as **drafts** for
+review. Nothing is published. A small script, `scripts/wp-draft.py`, run by a
+systemd path unit, uploads each new file in `blog-coordinator/posts/`. No AI
+agent runs it or sees the WordPress credentials.
+
+1. **WordPress:** log in as the user that should own drafts (Editor role is
+   enough), go to **Users → Profile → Application Passwords**, add one named
+   `openclaw-pi`, and copy the password it shows. Application Passwords need a
+   self-hosted WordPress (5.6+) served over HTTPS.
+2. **Pi:** install the Markdown converter and store the settings:
+
+   ```bash
+   sudo apt install -y python3-markdown
+   mkdir -p ~/.config/projectmetrics
+   cp ~/blog-writer/openclaw/wp.env.example ~/.config/projectmetrics/wp.env
+   chmod 600 ~/.config/projectmetrics/wp.env
+   nano ~/.config/projectmetrics/wp.env        # set WP_URL, WP_USER, WP_APP_PASSWORD
+   set -a; . ~/.config/projectmetrics/wp.env; set +a
+   ~/blog-writer/openclaw/scripts/wp-draft.py --check
+   ```
+
+   `--check` should print your WordPress name, role and `can create posts: True`.
+3. **Turn on automatic uploads:**
+
+   ```bash
+   mkdir -p ~/.config/systemd/user ~/blog-writer/openclaw/workspaces/blog-coordinator/posts
+   cp ~/blog-writer/openclaw/systemd/projectmetrics-wp-draft.* ~/.config/systemd/user/
+   systemctl --user daemon-reload
+   systemctl --user enable --now projectmetrics-wp-draft.path
+   ```
+
+Each new post becomes a draft containing the article (title, body, disclaimer
+and sources). The editor's notes and LinkedIn post stay in Telegram and the
+`posts/` file; set `WP_INCLUDE_NOTES=1` to append them to the draft under a
+"delete before publishing" heading. Set `WP_NOTIFY_TARGET` to your Telegram
+chat ID to be sent the draft link.
+
+Logs: `journalctl --user -u projectmetrics-wp-draft.service -n 20`. Upload one
+post by hand with `wp-draft.py <file>`; re-upload with `--force`. Existing
+posts are uploaded the first time the watcher runs; to skip them, run
+`wp-draft.py --pending` once before enabling the path unit, or move them out
+of `posts/`.
 
 ## Raspberry Pi notes
 

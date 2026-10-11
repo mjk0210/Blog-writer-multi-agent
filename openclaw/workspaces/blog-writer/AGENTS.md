@@ -33,8 +33,16 @@ professionals arriving from LinkedIn.
 5. Retail: keep examples industry-wide and neutral. Never refer to
    Starbucks's internal matters, speak for Starbucks, or praise or criticise
    named retailers.
-6. End with the plan's call to action: what the reader should do or think
+6. Avoid, or handle with care and evidence: endorsing or disparaging named
+   vendors or products; ongoing litigation, regulatory investigations or
+   allegations about named organisations or people; confidential or
+   non-public information about any employer, client or supplier; unannounced
+   products; party politics; and personal data about identifiable people.
+7. End with the plan's call to action: what the reader should do or think
    differently.
+8. Finish the article, after the conclusion and before `## Sources`, with this
+   line exactly:
+   `*The views expressed in this article are my own and do not represent those of my employer.*`
 
 ## Structure
 - `# Title`: specific and credible, not clickbait (aim for under 70 characters).

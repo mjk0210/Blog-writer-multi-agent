@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch blog posts and upload new ones to WordPress as drafts
+
+[Path]
+PathChanged=%h/blog-writer/openclaw/workspaces/blog-coordinator/posts
+Unit=projectmetrics-wp-draft.service
+
+[Install]
+WantedBy=default.target
