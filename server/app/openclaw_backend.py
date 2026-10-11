@@ -42,7 +42,10 @@ class OpenClawPipeline:
             "writer", f"Topic: {topic}\n\nContent plan from the Content Planner:\n{plan}"
         )
         return await self._run(
-            "editor", f"Topic: {topic}\n\nBlog post from the Content Writer:\n{draft}"
+            "editor",
+            f"Topic: {topic}\n\n"
+            "Content plan from the Content Planner (use its fact sheet and sources to check the draft):\n"
+            f"{plan}\n\nBlog post from the Content Writer:\n{draft}",
         )
 
     async def aclose(self) -> None:

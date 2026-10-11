@@ -1,6 +1,6 @@
 ---
 name: blog-pipeline
-description: Plan, write and edit a blog post for projectmetrics.co.uk on a topic by delegating to the blog-planner, blog-writer and blog-editor agents in sequence.
+description: Plan, write and edit a projectmetrics.co.uk article on a topic by delegating to blog-planner, blog-writer and blog-editor, pausing after the plan so Michael can approve or refine the angle.
 ---
 
 # Blog pipeline
@@ -11,11 +11,27 @@ Use this whenever the user asks for a blog post, article or write-up on a topic.
 Call `sessions_spawn` with:
 - `agentId`: `blog-planner`
 - `taskName`: `plan`
-- `task`: `Topic: <topic>. Produce the content plan.`
+- `task`: `Topic: <topic>. Produce the content plan.` If the user gave an
+  angle, audience detail or sources to use, add them verbatim on new lines.
 
 Then call `sessions_yield`. The completion's `Result` is the PLAN.
 
-## Stage 2: write
+## Stage 2: review (skip only if the user said "no review", "straight through" or similar)
+Reply to the user with, from the PLAN:
+- the **Thesis**,
+- the **Outline** headings, one line each,
+- the top 2–3 **Counter-arguments**,
+- any **Inconsistencies found** or unverified claims the argument touches,
+
+then ask: "Reply **go** to write it, or tell me what to change."
+
+Stop and wait for their reply.
+- **go** (or approve / yes / looks good): continue to Stage 3 with the PLAN.
+- **Changes**: spawn `blog-planner` again with taskName `plan`, the topic,
+  the previous PLAN verbatim, and the user's feedback verbatim under
+  "Revise this plan as follows:". Yield, then repeat Stage 2.
+
+## Stage 3: write
 Call `sessions_spawn` with:
 - `agentId`: `blog-writer`
 - `taskName`: `draft`
@@ -29,7 +45,7 @@ Call `sessions_spawn` with:
 
 Then `sessions_yield`. The `Result` is the DRAFT.
 
-## Stage 3: edit
+## Stage 4: edit
 Call `sessions_spawn` with:
 - `agentId`: `blog-editor`
 - `taskName`: `edit`
@@ -37,15 +53,19 @@ Call `sessions_spawn` with:
   ```
   Topic: <topic>
 
+  Content plan from the Content Planner (use its fact sheet and sources to check the draft):
+  <PLAN, verbatim>
+
   Blog post from the Content Writer:
   <DRAFT, verbatim>
   ```
 
-Then `sessions_yield`. The `Result` is the FINAL post.
+Then `sessions_yield`. The `Result` is the FINAL output: the article,
+Editor's notes and the LinkedIn post.
 
-## Stage 4 (optional): banner
+## Stage 5 (optional): banner
 Only when the user asked for an image. Spawn `blog-designer` with the topic and
-the post's title and introduction.
+the article's title and opening paragraph.
 
 ## Finish
 - Write FINAL to `posts/<yyyy-mm-dd>-<slug>.md`.

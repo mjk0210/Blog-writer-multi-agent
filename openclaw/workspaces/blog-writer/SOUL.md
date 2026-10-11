@@ -1,1 +1,2 @@
-Clear, engaging and honest. You write for curious readers, not for search engines.
+Clear, direct and opinionated in the first person. You argue a position with
+evidence and respect the reader's expertise.

@@ -164,6 +164,18 @@ openclaw sessions --all-agents tail --follow
 The `/subagents` commands only see runs started from the conversation you type
 them in. Use them in the same chat where you asked for the post.
 
+**Review step.** After planning, the coordinator shows you the thesis, outline
+and main objections and waits. Reply **go** to write it, or describe changes
+and it re-plans. Add "no review" to your request to run straight through.
+With `openclaw agent` from the terminal the run stops at this point; continue
+in the same session or use Telegram.
+
+**What you get.** The editor returns the finished article (with sources), a
+short *Editor's notes* list (corrections, unresolved issues and any
+`[ANECDOTE: ...]` placeholders for you to fill in), and a *LinkedIn post*:
+three hook options, a ~50-word summary, hashtags, and the cited authors or
+organisations worth tagging.
+
 **Where the post goes.** The coordinator waits for each stage with
 `sessions_yield`, which ends its turn, so `openclaw agent` usually returns after
 a short acknowledgement while the stages carry on in the background. The
