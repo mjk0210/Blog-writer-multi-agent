@@ -72,7 +72,7 @@
         tools: {
           profile: "minimal",
           allow: null,
-          alsoAllow: ["sessions_spawn", "sessions_yield", "subagents", "agents_list", "read", "write"],
+          alsoAllow: ["sessions_spawn", "sessions_yield", "subagents", "agents_list", "read", "write", "message"],
           deny: ["exec", "process", "browser", "web_search", "web_fetch"],
         },
         subagents: {
